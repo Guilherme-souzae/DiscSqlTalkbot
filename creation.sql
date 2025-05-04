@@ -1,0 +1,18 @@
+-- Pet
+CREATE TABLE IF NOT EXISTS Pet (
+  idDiscord INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  imgUrl TEXT NOT NULL
+);
+
+-- Quotes
+CREATE TABLE IF NOT EXISTS Quotes (
+  idQuote INTEGER PRIMARY KEY AUTOINCREMENT,
+  flag TEXT NOT NULL,
+  quote TEXT NOT NULL,
+  Pet_idDiscord INTEGER NOT NULL,
+  FOREIGN KEY (Pet_idDiscord)
+    REFERENCES Pet(idDiscord)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);

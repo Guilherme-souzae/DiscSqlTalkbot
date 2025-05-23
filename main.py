@@ -14,9 +14,40 @@ PREFIX = 'ps!'
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=PREFIX, intents=intents)
+bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None)
 
 # bot functions
+@bot.command()
+async def help(ctx):
+    embed = discord.Embed(
+        title="📜 PetSpeak Bot Help",
+        description="Lista de comandos disponíveis:",
+        color=discord.Color.green()
+    )
+
+    embed.add_field(
+        name=f"{PREFIX}register <nome> <url_da_imagem>",
+        value="Cria um novo pet com o nome e imagem fornecidos.",
+        inline=False
+    )
+    embed.add_field(
+        name=f"{PREFIX}teachquote <flag> <frase>",
+        value="Ensina uma frase ao seu pet para uma flag específica. Flags válidas: `greeting`, `default`.",
+        inline=False
+    )
+    embed.add_field(
+        name=f"{PREFIX}yap <flag>",
+        value="Faz o pet falar uma frase registrada da flag fornecida.",
+        inline=False
+    )
+    embed.add_field(
+        name=f"{PREFIX}help",
+        value="Mostra esta mensagem de ajuda.",
+        inline=False
+    )
+
+    await ctx.send(embed=embed)
+
 @bot.command()
 async def register(ctx, name: str, imgUrl: str):
     userId = ctx.author.id
@@ -34,7 +65,7 @@ async def register(ctx, name: str, imgUrl: str):
         await ctx.send(f"Error: {e}")
 
 @bot.command()
-async def teachQuote(ctx, flag: str, *, quote: str):
+async def teachquote(ctx, flag: str, *, quote: str):
     userId = ctx.author.id
 
     try:
@@ -56,7 +87,7 @@ async def teachQuote(ctx, flag: str, *, quote: str):
         await ctx.send(f"Error: {e}")
 
 @bot.command()
-async def yap(ctx, flag: str):
+async def yap(ctx, flag: str = 'default'):
     userId = ctx.author.id
 
     try:

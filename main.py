@@ -47,6 +47,16 @@ async def help(ctx):
     )
     embed.add_field(
         name=f"{PREFIX}help",
+        value="Mostra os atributos do pet.",
+        inline=False
+    )
+    embed.add_field(
+        name=f"{PREFIX}togglesleep",
+        value="Alterna o pet entre dormindo e acordado.",
+        inline=False
+    )
+    embed.add_field(
+        name=f"{PREFIX}help",
         value="Mostra esta mensagem de ajuda.",
         inline=False
     )
@@ -132,7 +142,7 @@ async def yap(ctx, flag: str = 'default'):
     except NotRegisteredQuotesError as e:
         await ctx.send(f"Error: {e}")
 
-# bot say a quote
+# check bot atributes
 @bot.command()
 async def status(ctx):
     userId = ctx.author.id
@@ -143,21 +153,43 @@ async def status(ctx):
         with sqlite3.connect('database.db') as db:
             cursor = db.cursor()
 
-            # Pega as quotes do usuário
+            cursor.execute("SELECT name, imgUrl, energy, lastTime, isSleeping FROM Pet WHERE idDiscord = ?", (userId,))
+            row = cursor.fetchone()
+
+            name, imgUrl, energy, lastTimeStr, isSleeping = row
+
+            lastTime = datetime.strptime(lastTimeStr, "%Y-%m-%d %H:%M:%S")
+            now = datetime.now()
+
+            diff_minutes = (now - lastTime).total_seconds() / 60
+
+            energy_loss_per_minute = 0.2
+            energy_gain_per_minute = 0.3
+
+            if isSleeping == 1:
+                energy_change = diff_minutes * energy_gain_per_minute
+            else:
+                energy_change = -diff_minutes * energy_loss_per_minute
+
+            new_energy = max(0, min(energy + energy_change, 100))
+
+            cursor.execute("UPDATE Pet SET energy = ?, lastTime = ? WHERE idDiscord = ?", (new_energy, now.strftime("%Y-%m-%d %H:%M:%S"), userId))
+            db.commit()
+
             cursor.execute("SELECT quote FROM Quotes WHERE Pet_idDiscord = ? AND flag = ?", (userId, VALID_FLAGS[0]))
             quotes = cursor.fetchall()
             checkExistingQuote(quotes)
 
-            # Pega os dados do pet
-            cursor.execute("SELECT name, imgUrl FROM Pet WHERE idDiscord = ?", (userId,))
-            row = cursor.fetchone()
-            name, imgUrl = row[0], row[1]
+            quote = random.choice(quotes)[0]
 
-        quote = random.choice(quotes)[0]
+        if energy_change >= 0:
+            energy_msg = f"🔋 Energia ganha desde a última vez: {energy_change:.1f}"
+        else:
+            energy_msg = f"🔋 Energia perdida desde a última vez: {abs(energy_change):.1f}"
 
         embed = discord.Embed(
-            title=name,
-            description=quote,
+            title=f"{name} - Status",
+            description=f"{quote}\n\nEnergia atual: {new_energy:.1f} / 100\n{energy_msg}",
             color=discord.Color.blue()
         )
         embed.set_image(url=imgUrl)
@@ -167,6 +199,35 @@ async def status(ctx):
         await ctx.send(f"Error: {e}")
     except NotRegisteredQuotesError as e:
         await ctx.send(f"Error: {e}")
+
+# toggle bot sleep state
+@bot.command()
+async def togglesleep(ctx):
+    userId = ctx.author.id
+
+    try:
+        checkIfUserIsRegistered(userId)
+
+        with sqlite3.connect('database.db') as db:
+            cursor = db.cursor()
+
+            cursor.execute("SELECT isSleeping FROM Pet WHERE idDiscord = ?", (userId,))
+            result = cursor.fetchone()
+
+            isSleeping = result[0]
+
+            if isSleeping == 0:
+                cursor.execute("UPDATE Pet SET isSleeping = ? WHERE idDiscord = ?", (1, userId))
+                db.commit()
+                await ctx.send("O pet está dormindo")
+            elif isSleeping == 1:
+                cursor.execute("UPDATE Pet SET isSleeping = ? WHERE idDiscord = ?", (0, userId))
+                db.commit()
+                await ctx.send("O pet acordou")
+
+    except NotRegisteredClientError as e:
+        await ctx.send(f"Error: {e}")
+
 
 # exceptions checking
 def checkIfUserIsRegistered(userId):

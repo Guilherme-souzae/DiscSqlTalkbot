@@ -2,7 +2,10 @@
 CREATE TABLE IF NOT EXISTS Pet (
   idDiscord INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
-  imgUrl TEXT NOT NULL
+  imgUrl TEXT NOT NULL,
+  energy INTEGER NOT NULL,
+  isSleeping INTEGER NOT NULL,
+  lastTime TEXT NOT NULL
 );
 
 -- Quotes
